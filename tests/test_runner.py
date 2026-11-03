@@ -23,6 +23,15 @@ def test_failing_command_does_not_pass(tmp_path: Path):
     assert not result.passed
     assert result.exit_code == 3
     assert "boom" in result.stderr
+    assert "boom" in result.combined_output
+    assert result.tail() == "boom"
+
+
+def test_tail_keeps_only_the_last_lines(tmp_path: Path):
+    result = run_local([PY, "-c", "print('\\n'.join(str(i) for i in range(50)))"], cwd=tmp_path)
+    tail = result.tail(3)
+    assert tail.splitlines() == ["47", "48", "49"]
+    assert result.tail(0) == ""
 
 
 def test_timeout_is_reported(tmp_path: Path):

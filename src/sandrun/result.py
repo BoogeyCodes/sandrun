@@ -19,6 +19,18 @@ class RunResult:
         """A run passes only if it finished in time with a zero exit code."""
         return not self.timed_out and self.exit_code == 0
 
+    @property
+    def combined_output(self) -> str:
+        """stdout and stderr together, in the order a terminal would show them."""
+        return self.stdout + self.stderr
+
+    def tail(self, lines: int = 20) -> str:
+        """The last ``lines`` lines of combined output — enough to see why a run failed
+        without dumping the whole log into a report."""
+        if lines <= 0:
+            return ""
+        return "\n".join(self.combined_output.splitlines()[-lines:])
+
     def summary(self) -> str:
         if self.timed_out:
             return f"TIMED OUT after {self.duration_s:.1f}s"

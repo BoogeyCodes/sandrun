@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ run.id }} — sandrun{% endblock %}
+{% block body %}
+<p class="sub"><a href="/">&larr; Runs</a></p>
+<h1>Run #{{ run.id }} <span class="badge {{ run.status }}">{{ run.status }}</span></h1>
+<p class="sub">{{ run.label or 'run' }}</p>
+
+<div class="panel">
+  <table>
+    <tr><th>Command</th><td><code>{{ run.command | join(' ') }}</code></td></tr>
+    <tr><th>Exit code</th><td>{{ run.exit_code if run.exit_code is not none else '— (did not exit)' }}</td></tr>
+    <tr><th>Duration</th><td>{{ '%.3f' | format(run.duration_s) }}s</td></tr>
+    <tr><th>Timed out</th><td>{{ 'yes' if run.timed_out else 'no' }}</td></tr>
+    <tr><th>When</th><td class="muted">{{ run.created_at.replace('T', ' ')[:19] }} UTC</td></tr>
+  </table>
+  <form method="post" action="/runs/{{ run.id }}/delete" style="margin-top:12px" onsubmit="return confirm('Delete this run?')">
+    <button class="btn danger" type="submit">Delete run</button>
+  </form>
+</div>
+
+<h2>stdout</h2>
+<div class="panel"><pre class="log">{{ run.stdout or '(empty)' }}</pre></div>
+
+<h2>stderr</h2>
+<div class="panel"><pre class="log">{{ run.stderr or '(empty)' }}</pre></div>
+{% endblock %}

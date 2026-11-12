@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}sandrun — runs{% endblock %}
+{% block body %}
+<h1>Sandbox runs</h1>
+<p class="sub">
+  {{ stats.total }} run{{ '' if stats.total == 1 else 's' }} ·
+  {% if not docker %}<span class="muted">Docker not detected — runs execute locally.</span>
+  {% else %}<span class="muted">Docker available.</span>{% endif %}
+</p>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ (stats.pass_rate * 100) | round(0) | int }}%</div><div class="l">Pass rate</div></div>
+  <div class="stat"><div class="n" style="color:var(--good)">{{ stats.passed }}</div><div class="l">Passed</div></div>
+  <div class="stat"><div class="n" style="color:var(--bad)">{{ stats.failed }}</div><div class="l">Failed</div></div>
+  <div class="stat"><div class="n" style="color:var(--warn)">{{ stats.timeout }}</div><div class="l">Timed out</div></div>
+  <div class="stat"><div class="n">{{ '%.2f' | format(stats.avg_duration_s) }}s</div><div class="l">Avg time</div></div>
+</div>
+
+<h2>Submit a run</h2>
+<div class="panel">
+  {% if error %}<div class="error-box">{{ error }}</div>{% endif %}
+  <form method="post" action="/submit">
+    <label class="field">Command</label>
+    <input type="text" name="command" placeholder="python -m pytest -q" value="{{ command or '' }}" spellcheck="false">
+    <label class="field">Files (JSON: path → content, optional)</label>
+    <textarea name="files" placeholder='{"main.py": "print(\"hi\")", "test_main.py": "def test(): assert True"}' spellcheck="false">{{ files or '' }}</textarea>
+    <div class="row" style="margin-top:12px">
+      <label class="field" style="margin:0">Timeout (s)</label>
+      <input type="text" name="timeout" value="30" style="width:80px">
+      <button type="submit">Run in sandbox</button>
+    </div>
+  </form>
+</div>
+
+<h2>Recent runs</h2>
+<div class="panel">
+  {% if runs %}
+  <table>
+    <thead><tr><th>#</th><th>Label</th><th>Command</th><th>Status</th><th class="num">Exit</th><th class="num">Time</th><th>When</th></tr></thead>
+    <tbody>
+      {% for r in runs %}
+      <tr>
+        <td>{{ r.id }}</td>
+        <td><a href="/runs/{{ r.id }}">{{ r.label or 'run' }}</a></td>
+        <td><code>{{ r.command | join(' ') }}</code></td>
+        <td><span class="badge {{ r.status }}">{{ r.status }}</span></td>
+        <td class="num muted">{{ r.exit_code if r.exit_code is not none else '—' }}</td>
+        <td class="num">{{ '%.2f' | format(r.duration_s) }}s</td>
+        <td class="muted">{{ r.created_at.replace('T', ' ')[:16] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No runs yet. Submit one above.</div>
+  {% endif %}
+</div>
+{% endblock %}

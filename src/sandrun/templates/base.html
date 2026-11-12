@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}sandrun{% endblock %}</title>
+  <style>
+    :root {
+      --bg: #f7f8fa; --panel: #ffffff; --ink: #1b1f24; --muted: #5b6672;
+      --border: #e3e7ec; --accent: #7c3aed; --accent-ink: #ffffff;
+      --good: #15803d; --warn: #b45309; --bad: #b91c1c; --chip: #eef2f7;
+      --shadow: 0 1px 3px rgba(16,24,40,.06), 0 1px 2px rgba(16,24,40,.04);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0e1116; --panel: #161b22; --ink: #e6edf3; --muted: #8b949e;
+        --border: #262c34; --accent: #a371f7; --accent-ink: #0e1116;
+        --good: #3fb950; --warn: #d29922; --bad: #f85149; --chip: #1c2430;
+        --shadow: none;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--ink);
+      font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    header.top {
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      padding: 14px 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    }
+    header.top .brand { font-weight: 700; font-size: 18px; letter-spacing: -.01em; }
+    header.top .brand span { color: var(--accent); }
+    header.top nav { display: flex; gap: 14px; margin-left: auto; }
+    main { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+    h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em; }
+    h2 { font-size: 16px; margin: 28px 0 10px; }
+    .sub { color: var(--muted); margin: 0 0 20px; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+      padding: 16px; box-shadow: var(--shadow); margin-bottom: 20px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tr:last-child td { border-bottom: none; }
+    .stats { display: flex; gap: 12px; flex-wrap: wrap; }
+    .stat { flex: 1 1 120px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); }
+    .stat .n { font-size: 26px; font-weight: 700; letter-spacing: -.02em; }
+    .stat .l { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+    .badge { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+    .passed { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+    .failed { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+    .timeout { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+    .error { background: color-mix(in srgb, var(--muted) 22%, transparent); color: var(--muted); }
+    code, pre { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    pre.log {
+      background: #0b0e13; color: #d7dde6; border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 0;
+    }
+    input[type=text], textarea {
+      width: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: var(--bg); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    label.field { display: block; margin: 12px 0 4px; font-size: 13px; color: var(--muted); }
+    button, .btn {
+      font: inherit; font-weight: 600; cursor: pointer; border: 1px solid transparent;
+      background: var(--accent); color: var(--accent-ink); padding: 8px 14px; border-radius: 8px;
+    }
+    .btn.danger { background: transparent; color: var(--bad); border-color: var(--border); padding: 4px 10px; font-size: 13px; }
+    .error-box { background: color-mix(in srgb, var(--bad) 12%, transparent); border: 1px solid var(--bad); color: var(--bad); padding: 10px 12px; border-radius: 8px; margin-bottom: 14px; }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .muted { color: var(--muted); }
+    .empty { color: var(--muted); padding: 24px; text-align: center; }
+    footer { color: var(--muted); font-size: 12px; text-align: center; padding: 24px 16px; }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="brand"><a href="/" style="color:inherit"><span>sand</span>run</a></div>
+    <nav>
+      <a href="/">Runs</a>
+      <a href="/docs">API</a>
+    </nav>
+  </header>
+  <main>
+    {% block body %}{% endblock %}
+  </main>
+  <footer>sandrun v{{ version }} — running AI agent work against tests in a throwaway sandbox</footer>
+</body>
+</html>

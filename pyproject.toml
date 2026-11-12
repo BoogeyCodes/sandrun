@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sandrun"
-version = "0.1.0"
-description = "Run an AI coding agent's work against tests in an isolated sandbox, locally or in Docker."
+version = "0.2.0"
+description = "Run an AI coding agent's work against tests in an isolated sandbox, with a web dashboard, REST API and pass-rate tracking."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Abdul Raheem" }]
 requires-python = ">=3.10"
-keywords = ["sandbox", "testing", "docker", "ai-agents", "evaluation", "ci"]
+keywords = ["sandbox", "testing", "docker", "ai-agents", "evaluation", "ci", "fastapi", "runner"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
@@ -26,7 +26,8 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5"]
+web = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "jinja2>=3.1", "python-multipart>=0.0.9"]
+dev = ["pytest>=8", "ruff>=0.5", "httpx>=0.27", "fastapi>=0.110", "jinja2>=3.1", "python-multipart>=0.0.9"]
 
 [project.scripts]
 sandrun = "sandrun.cli:main"
@@ -37,6 +38,9 @@ Issues = "https://github.com/BoogeyCodes/sandrun/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+sandrun = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -12,10 +12,36 @@ from sandrun import __version__
 from sandrun.runner import run_local
 
 
+def _serve(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="sandrun serve", description="Run the web dashboard + REST API.")
+    parser.add_argument("--db", default="sandrun.db", help="SQLite file to store runs in")
+    parser.add_argument("--host", default="127.0.0.1", help="interface to bind (default: 127.0.0.1)")
+    parser.add_argument("--port", type=int, default=8000, help="port to listen on (default: 8000)")
+    args = parser.parse_args(argv)
+    try:
+        import uvicorn
+
+        from sandrun.service import create_app
+    except ImportError:
+        print(
+            "sandrun: the web server needs the optional extra. Install it with:\n"
+            "    pip install 'sandrun[web]'",
+            file=sys.stderr,
+        )
+        return 2
+    uvicorn.run(create_app(args.db), host=args.host, port=args.port)
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
+    args_in = sys.argv[1:] if argv is None else argv
+    if args_in and args_in[0] == "serve":
+        return _serve(args_in[1:])
+
     parser = argparse.ArgumentParser(
         prog="sandrun",
-        description="Run a command in a throwaway copy of a directory, with a timeout.",
+        description="Run a command in a throwaway copy of a directory, with a timeout. "
+        "Use 'sandrun serve' for the web dashboard + REST API.",
     )
     parser.add_argument("--dir", default=".", help="the directory to copy into the sandbox (default: .)")
     parser.add_argument("--timeout", type=float, default=120.0, help="seconds before the command is killed")

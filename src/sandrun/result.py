@@ -24,6 +24,12 @@ class RunResult:
         """stdout and stderr together, in the order a terminal would show them."""
         return self.stdout + self.stderr
 
+    def head(self, lines: int = 20) -> str:
+        """The first ``lines`` lines of combined output — useful when the failure is at startup."""
+        if lines <= 0:
+            return ""
+        return "\n".join(self.combined_output.splitlines()[:lines])
+
     def tail(self, lines: int = 20) -> str:
         """The last ``lines`` lines of combined output — enough to see why a run failed
         without dumping the whole log into a report."""

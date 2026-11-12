@@ -34,6 +34,12 @@ def test_tail_keeps_only_the_last_lines(tmp_path: Path):
     assert result.tail(0) == ""
 
 
+def test_head_keeps_only_the_first_lines(tmp_path: Path):
+    result = run_local([PY, "-c", "print('\\n'.join(str(i) for i in range(50)))"], cwd=tmp_path)
+    assert result.head(3).splitlines() == ["0", "1", "2"]
+    assert result.head(0) == ""
+
+
 def test_timeout_is_reported(tmp_path: Path):
     result = run_local([PY, "-c", "import time; time.sleep(5)"], cwd=tmp_path, timeout=0.5)
     assert result.timed_out

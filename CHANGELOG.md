@@ -5,6 +5,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- `RunResult.head(lines=20)` — the first few lines of output, for failures that happen
+  at startup (complements `tail`).
 - `RunResult.combined_output` — stdout and stderr together.
 - `RunResult.tail(lines=20)` — the last few lines of output, so an evaluation
   report can show why a run failed without embedding the entire log.

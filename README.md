@@ -2,13 +2,39 @@
 
 [![CI](https://github.com/BoogeyCodes/sandrun/actions/workflows/ci.yml/badge.svg)](https://github.com/BoogeyCodes/sandrun/actions/workflows/ci.yml)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB)
-![No dependencies](https://img.shields.io/badge/dependencies-none-success)
+![Core: zero dependencies](https://img.shields.io/badge/core-zero%20deps-success)
 ![License: MIT](https://img.shields.io/badge/license-MIT-green)
 
-Run an **AI coding agent's work against tests in an isolated sandbox**. Materialise the task's files
-plus the agent's changes into a throwaway workspace, run a test command with a timeout, and get a
-structured pass/fail result — locally, or inside a Docker container for stronger isolation. No
-dependencies.
+Run an **AI coding agent's work against tests in an isolated sandbox** — and keep a history of every
+run with a pass rate. Submit a set of files plus a command; sandrun materialises them into a throwaway
+workspace, runs the command under a timeout (locally, or inside a Docker image), and records a
+structured pass/fail result you can browse on a dashboard or pull from a REST API.
+
+It comes as three things in one package:
+
+- a **web dashboard** — submit a run from the browser and watch pass/fail/timeout stats build up;
+- a **REST API** — submit runs and read results as JSON, to wire into an evaluation harness or CI;
+- a **CLI + library** — sandbox a single command, or call the runner from your own code.
+
+The runner engine has **no dependencies**; the web layer is an optional extra.
+
+![The sandrun dashboard: pass-rate stats, a submit form and recent runs](docs/dashboard.png)
+
+## Quick start
+
+```bash
+pip install -e ".[web]"      # runner + web dashboard & API
+sandrun serve                # http://127.0.0.1:8000  (runs persist in sandrun.db)
+```
+
+Sandbox a single command from the shell (no extras needed):
+
+```bash
+sandrun --dir ./repo -- pytest -q      # run tests in a throwaway copy of ./repo
+sandrun --timeout 30 -- npm test       # with a timeout; exit 0 on pass, 1 on fail
+```
+
+Or use the library directly:
 
 ```python
 from sandrun import run_in_sandbox
@@ -23,21 +49,43 @@ result.passed        # True — the agent's change makes the test pass
 result.summary()     # "PASS (exit 0, 0.1s)"
 ```
 
+With Docker:
+
 ```bash
-sandrun --dir ./repo -- pytest -q          # run tests in a throwaway copy of ./repo
-sandrun --timeout 30 -- npm test           # with a timeout; exit 0 on pass, 1 on fail
+docker build -t sandrun .
+docker run -p 8000:8000 -v "$PWD/data:/data" sandrun
 ```
 
-## Why
+## The service
 
-Deciding whether an AI coding agent actually fixed the bug means *running its code against the tests* —
-objectively, not by eye. But you want to do that without letting an unknown change touch your working
-tree or your machine. sandrun is that harness: it copies the task into a disposable workspace, applies
-the agent's changed files on top, runs the tests under a timeout, and reports a clean pass/fail, so an
-evaluation can be backed by a real test result. It leans on the exact skills the work needs — shell,
-subprocess, Docker, and test pipelines.
+Submit a run (files + command); it executes in a sandbox and the verdict, timing and logs are stored.
+The dashboard tracks a running pass rate; each run has its own page with the captured output:
 
-## What it does
+![A run page: command, exit code, timing and captured logs](docs/run.png)
+
+### REST API
+
+| Method & path | What it does |
+| --- | --- |
+| `POST /api/runs` | run `{files, command, overlay?, timeout?, label?, image?}` in a sandbox, store it, return the result (201) |
+| `GET /api/runs` | list run summaries (optional `?status=passed\|failed\|timeout`) |
+| `GET /api/runs/{id}` | one run with its stdout/stderr |
+| `GET /api/stats` | pass/fail/timeout counts, pass rate, average duration |
+| `GET /healthz` | liveness probe |
+
+```bash
+curl -X POST localhost:8000/api/runs -H 'content-type: application/json' -d '{
+  "command": ["python", "-m", "pytest", "-q"],
+  "files": {"calc.py": "def add(a,b):\n return a+b\n",
+            "test_calc.py": "from calc import add\n\ndef test_add():\n assert add(2,3)==5\n"},
+  "label": "calc suite"
+}'
+curl localhost:8000/api/stats
+```
+
+Interactive API docs are served at `/docs` (OpenAPI).
+
+## The runner (library)
 
 - **`run_in_sandbox(files, command, overlay=None, timeout=...)`** — write the starting `files`, then
   the agent's `overlay` files on top, into a fresh temp directory; run `command` there; delete the
@@ -46,28 +94,21 @@ subprocess, Docker, and test pipelines.
   that overruns is killed and reported as `timed_out`.
 - **`workspace(files, overlay=None)`** — a context manager that builds and cleans up a temp workspace,
   rejecting any path that would escape it (`../x`).
-- **Docker**: `build_docker_argv(image, command, mount, network="none", memory=..., env=...)` builds a
-  `docker run --rm` invocation with the workspace bind-mounted, the working dir set, and networking
-  **off by default**; `run_docker(...)` executes it when Docker is present.
+- **`RunStore`** — a dependency-free SQLite history: `add` a `RunResult`, `list`/filter runs, and read
+  `stats()` (pass rate, counts, average duration) — usable without the web server.
+- **Docker**: `build_docker_argv(...)` / `run_docker(...)` build and run a `docker run --rm` invocation
+  with the workspace bind-mounted, the working dir set, and networking **off by default**.
 
 `RunResult` is `{ command, exit_code, duration_s, timed_out, stdout, stderr }` with a `passed` property
-(finished in time with exit code 0) and a `summary()`.
-
-## CLI
-
-```
-sandrun [--dir DIR] [--timeout SECONDS] -- <command>
-```
-
-Copies `DIR` (default `.`) into a throwaway sandbox, runs the command there, streams its output, prints
-a `PASS`/`FAIL`/`TIMED OUT` line, and exits `0` on pass, `1` on fail, `2` on a usage error.
+(finished in time with exit code 0), `head()`/`tail()`/`combined_output`, and a `summary()`.
 
 ## Safety
 
 The workspace is a temp directory removed on exit; path traversal in the file set is rejected; every
-run has a timeout and is killed if it overruns; and the Docker runner disables networking by default
-and can cap memory. sandrun runs code you are evaluating — treat the inputs as untrusted and prefer the
-Docker runner for anything you do not control.
+run has a timeout and is killed if it overruns; and the Docker runner disables networking by default.
+**The local runner executes the command on the host** (inside a throwaway *directory*, not a
+container) — bind the server to localhost, treat submitted code as untrusted, and name a Docker
+`image` for anything you do not control.
 
 ## Testing
 
@@ -76,21 +117,24 @@ pip install -e ".[dev]"
 pytest
 ```
 
-Fifteen tests covering the runner (pass, fail, timeout, working directory, empty command), the
-workspace and harness (materialise/cleanup, overlay overwrite, path-traversal rejection, and an
-end-to-end "the agent's fix makes the test pass"), the Docker argv builder, and the CLI. The Docker
-argv is unit-tested without needing Docker. CI runs on Linux and Windows across Python 3.10–3.13.
+The suite covers the runner (pass, fail, timeout, working directory, empty command), the workspace and
+harness (materialise/cleanup, overlay overwrite, path-traversal rejection, end-to-end agent fix), the
+Docker argv builder, the SQLite store and stats, and every web route (the dashboard, submit/delete
+flows, the REST API and stats). CI runs on Linux and Windows across Python 3.10–3.13.
 
 ## Project layout
 
 ```
 src/sandrun
-├── result.py     RunResult (+ passed / summary)
+├── result.py     RunResult (+ passed / head / tail / summary)
 ├── workspace.py  build & clean a throwaway workspace
 ├── runner.py     run a command locally with a timeout
 ├── docker.py     build/run a docker invocation (network off by default)
 ├── harness.py    run_in_sandbox: files + overlay + command
-└── cli.py        run a command in a sandboxed copy of a directory
+├── store.py      SQLite run history + pass-rate stats (zero-dependency)
+├── service.py    the FastAPI dashboard + REST API  (optional [web] extra)
+├── templates/    the dashboard HTML
+└── cli.py        sandbox a command, or 'sandrun serve'
 tests/            pytest suite
 ```
 

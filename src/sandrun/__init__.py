@@ -9,7 +9,19 @@ from sandrun.docker import build_docker_argv
 from sandrun.harness import run_in_sandbox
 from sandrun.result import RunResult
 from sandrun.runner import run_local
+from sandrun.store import RunStore, RunSummary, Stats, StoredRun, status_of
 from sandrun.workspace import workspace
 
-__version__ = "0.1.0"
-__all__ = ["RunResult", "run_local", "workspace", "run_in_sandbox", "build_docker_argv"]
+__version__ = "0.2.0"
+__all__ = [
+    "RunResult",
+    "run_local",
+    "workspace",
+    "run_in_sandbox",
+    "build_docker_argv",
+    "RunStore",
+    "StoredRun",
+    "RunSummary",
+    "Stats",
+    "status_of",
+]
